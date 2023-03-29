@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Service\ImageResizeHandler;
 use Aws\S3\S3Client;
+use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
@@ -36,27 +37,28 @@ class ImageController extends AbstractController
                 ]);
             }
 
-            $validExtensions = ["webp"];
+            $validExtensions = ["webp", "zip"];
             if(!in_array($file->getClientOriginalExtension(), $validExtensions)) {
                 return $this->json([
-                    'message' => 'Please use a valid image (webp)',
+                    'message' => 'Please use a valid image (webp or compressed)',
                 ]);
             }
 
-            $urlPath = $this->imageResizeService->processImage($file, $size);
-
-            if($urlPath) {
+            try {
+                $processedImage = $this->imageResizeService->processImage($file, $size);
+            }catch (Exception $error) {
                 return $this->json([
-                    "status" => "You can see your image at " . $urlPath
-                ]);
-            }else{
-                return $this->json([
-                    'message' => 'Something went wrong :( please make sure you are uploading a file with less than 204800 bytes.',
-                ]);
+                    "status" => $error->getMessage()
+                ], $error->getCode());
             }
+
+            return $this->json([
+                "status" => "You can see your image at " . $processedImage
+            ]);
+
         }
         return $this->json([
             'message' => 'Please upload a image and select a size (1 or 2) into this endpoint :)',
-        ]);
+        ], 400);
     }
 }

@@ -33,7 +33,7 @@ class ImageResizeHandler
         $imageFile->move($path, $imageFile->getClientOriginalName());
 
         if(filesize($this->fullPath) > 204800) {
-            return false;
+            throw new \Exception("Image/Zip File size is too big.", 413);
         }
 
         $resizedImage = $this->resizeImage($size);
@@ -41,7 +41,7 @@ class ImageResizeHandler
         try {
             return $this->awsBucketService->putObjectS3("3cket-intro/", $resizedImage);
         }catch (S3Exception $exception) {
-            return false;
+            throw new \Exception("There was a error uploading the image to S3, make sure you are using the right configuration.", 500);
         }
 
 
